@@ -1,0 +1,10 @@
+This is a modification of Blinky.c to drive a 2x16 character LCD
+
+Example functionality:                                                   
+ - Clock Settings:
+   - SYSCLK  =           168.00 MHz
+   - HCLK    = SYSCLK  = 168.00 MHz
+
+ - displays "HEllow World!" on line 1
+ - displays "Des & Const" on line 2 starting at 4th character
+
