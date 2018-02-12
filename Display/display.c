@@ -17,6 +17,7 @@
  
 #include <stdio.h>
 #include <stdlib.h>
+#include <math.h>
 #include "STM32F4xx.h"
 #include "LED.h"
 #include "SWT.h"
@@ -117,8 +118,12 @@ int main (void) {
 	int switch2;
 	int switch3;
 	int switch4;
-	float value;
+	int page;
+	double value;
 	char display_value[20];
+	//char *windDirection;
+	char* compassPoints[2][8]={"N",  "NE",  "E",  "SE",  "S",  "SW",  "W",  "NW"};
+	double voltageLookUp[8] = {2.29,  1.35, 0.27, 0.53,  0.84, 1.84,  2.76, 2.59};   /*Values callibrated to a certain weather vane, may need to change them in order to be more accurate*/
 	
 
   SystemCoreClockUpdate();                      /* Get Core Clock Frequency   */
@@ -129,7 +134,7 @@ int main (void) {
   LED_Init();
   BTN_Init();   
   SWT_Init();	
-	ADC1_init();
+	ADC1_init();		/*Initialise everything*/
   LCD_Initpins();	
 	LCD_DriverOn();
 	
@@ -137,15 +142,34 @@ int main (void) {
 	LCD_Init();
 	LCD_On(1);
 	
-	while(1) {                                    /* Loop forever               */
-    btns = SWT_Get();		/* Read switch states         */
+	
+	
+	while(1)  /* Loop forever */
+    btns = SWT_Get();		/* Read switch states  */
 		GPIOD->ODR = btns;
 		
-		value = read_ADC1(); 												/* Gets a 12 bit right-aligned value from the ADC */
+		value = read_ADC1(); /* Gets a 12 bit right-aligned value from the ADC */
 		
-		value=value*0.00073;
-		sprintf(display_value,"%f", value);
-			
+		value=value*0.00073; /*multiplied by 0.00073 as range is 3V and has resolution 12bit therefor 4096 levels. 3V/4096=0.00073*/
+		sprintf(display_value,"%f", value); /*value needs to changed to a char to be displayed on the lcd*/
+		
+		int i;
+		int index;
+		double closeness=500; /*find closest compass position of the weather vane*/
+		for(i=0;i<=7;i++)
+		{
+			if(closeness>fabs(value-voltageLookUp[i]))
+			{
+				closeness=fabs(value-voltageLookUp[i]);
+				index=i;
+			}
+			else
+			{
+				closeness=closeness;
+			}
+		}
+		
+		
 		/*check Switches*/
 		switch1=SWT_Check(0);
 		switch2=SWT_Check(1);
@@ -153,38 +177,55 @@ int main (void) {
 		switch4=SWT_Check(3);
 		
 		if (switch1!=0){
-			LCD_Clear();
-			LCD_PutS("Page 1");
-			LCD_GotoXY(5,1);
-			
-			LCD_PutS(display_value);
+			page=1;
 		}
 		
 		if (switch2!=0){
-			LCD_Clear();
-			LCD_PutS("Page 2");
+			page=2;
 		}
 		
 		if (switch3!=0){
-			LCD_Clear();
-			LCD_PutS("Page 3");
+			page=3;
 		}
 		
 		if (switch4!=0){
+			page=4;
+		}
+		
+		if(page==1)
+		{
+			LCD_Clear();
+			LCD_PutS("Page 1");
+			LCD_GotoXY(0,1);
+			
+			LCD_PutS(display_value); /*displays value from adc 1*/ 
+			LCD_GotoXY(9,1);
+			
+			LCD_PutS(compassPoints[0][index]); /*allong with compass position (N, NW, S, SE etc)*/
+			
+			Delay(1000);
+		}
+		
+		if(page==2)
+		{
+			LCD_Clear();
+			LCD_PutS("Page 2");
+			Delay(1000);
+		}
+		
+		if(page==3)
+		{
+			LCD_Clear();
+			LCD_PutS("Page 3");
+			Delay(1000);
+		}
+		
+		if(page==4)
+		{
 			LCD_Clear();
 			LCD_PutS("Page 4");
+			Delay(1000);
 		}
-	}
+	}		
 
-	LCD_DriverOn();
-	LCD_On(1);
-	Delay(20);
-	LCD_Clear();
-	LCD_PutS("Hello World!");
-	
-	LCD_GotoXY(4,1);
-	LCD_PutS("Des & Const");
-	
-				
-}
 
