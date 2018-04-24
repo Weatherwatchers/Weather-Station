@@ -63,8 +63,8 @@ void SWT_Init (void) {
   Function that reads Switch states
  *----------------------------------------------------------------------------*/
 uint32_t SWT_Get (void) {
-
-  return (GPIOE->IDR);
+  uint32_t thing = GPIOE->IDR;
+  return thing;
 }
 
 /*----------------------------------------------------------------------------

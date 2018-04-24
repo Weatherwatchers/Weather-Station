@@ -22,6 +22,7 @@
 #include "LED.h"
 #include "SWT.h"
 #include "LCD.h"
+#include "UART4.h"
 
 
 
@@ -108,47 +109,65 @@ unsigned int read_ADC1 (void) {
 	return (ADC1->DR);
 }
 
-/*----------------------------------------------------------------------------
-  MAIN function
- *----------------------------------------------------------------------------*/
-int main (void) {
+void PC6_Init(void) {
+	RCC->AHB1ENR |= RCC_AHB1ENR_GPIOCEN;
+	GPIOC->MODER &= ~((3UL << 2*6) );
+	GPIOC->PUPDR &= ~((3UL<<2*6));
+	GPIOC->PUPDR |= ((2UL<<2*6));
+}
+/*
+void PE3_Init(void) {
+	RCC->AHB1ENR |= RCC_AHB1ENR_GPIOEEN;
+	GPIOE->MODER &= ~((3UL << 2*3) );
+	GPIOE->MODER |= ~((1UL << 2*3) );
+	GPIOC->OTYPER &= ~((1UL<<6));
+}
 
-	uint32_t btns = 0;
-	int switch1;
-	int switch2;
-	int switch3;
-	int switch4;
-	int page;
+void output_PE3_on(void){
+	GPIOE->BSRR = 1UL << 3;
+}
+
+void output_PE3_off(void){
+	GPIOE->BSRR = 1UL << 3 << 16;
+}*/
+
+uint32_t Val_Get_PC6(void) {
+	return (GPIOC->IDR & (1UL<<6));
+}
+
+
+double findSpeed(void)
+{
+	int carryOn = 1;
+	double count=0;
+	int flag=0;
+
+	uint32_t curTicks;
+
+  curTicks = msTicks;
+  while ((msTicks - curTicks) < 1000){
+		if(Val_Get_PC6()!=0 && flag==0){
+			count=count+1;
+			flag=1;
+		}
+		else if(Val_Get_PC6()==0){
+			flag=0;
+	}
+	}
+	if(flag==1 && count==1){
+		count = 0;
+	}
+	return count * 2.4;
+}
+
+int findWindDirection(){
 	double value;
 	char display_value[20];
-	//char *windDirection;
-	char* compassPoints[2][8]={"N",  "NE",  "E",  "SE",  "S",  "SW",  "W",  "NW"};
+	
 	double voltageLookUp[8] = {2.29,  1.35, 0.27, 0.53,  0.84, 1.84,  2.76, 2.59};   /*Values callibrated to a certain weather vane, may need to change them in order to be more accurate*/
 	
-
-  SystemCoreClockUpdate();                      /* Get Core Clock Frequency   */
-  if (SysTick_Config(SystemCoreClock / 1000)) { /* SysTick 1 msec interrupts  */
-    while (1);                                  /* Capture error              */
-  }
-
-  LED_Init();
-  BTN_Init();   
-  SWT_Init();	
-	ADC1_init();		/*Initialise everything*/
-  LCD_Initpins();	
-	LCD_DriverOn();
-	
-	Delay(10);
-	LCD_Init();
-	LCD_On(1);
-	
-	
-	
-	while(1)  /* Loop forever */
-    btns = SWT_Get();		/* Read switch states  */
-		GPIOD->ODR = btns;
-		
-		value = read_ADC1(); /* Gets a 12 bit right-aligned value from the ADC */
+	/* Gets a 12 bit right-aligned value from the ADC */
+		value = read_ADC1(); 
 		
 		value=value*0.00073; /*multiplied by 0.00073 as range is 3V and has resolution 12bit therefor 4096 levels. 3V/4096=0.00073*/
 		sprintf(display_value,"%f", value); /*value needs to changed to a char to be displayed on the lcd*/
@@ -168,13 +187,102 @@ int main (void) {
 				closeness=closeness;
 			}
 		}
+		return index;
+}
+
+
+
+
+/*----------------------------------------------------------------------------
+  MAIN function
+ *----------------------------------------------------------------------------*/
+int main (void) {
+
+	volatile uint32_t btns = 0;
+	volatile int switch1;
+	volatile int switch2;
+	volatile int switch3;
+	volatile int switch4;
+	int page;
+	char* compassPoints[2][8]={"S",  "SW",  "W",  "NW", "N",  "NE",  "E",  "SE"  };
+	
+	//clock_t start;
+	//clock_t end;
+	int speedcount;
+	double cyclesPerSec;
+	char display_speed[20];
+	double speed = 0;
+	int flag = 0;
+	
+	uint32_t pin6value;
+	
+	/* Midi CC = 0xnc, 0xcc, 0xvv
+	Where n = is the status (0xB only!)
+	c = midi channel no.
+	cc = controller number
+	vv = controller value */
+	uint8_t winddirection_midi_values[]={0xB1, 0x00, 0x00};
+	uint8_t windspeed_midi_values[]={0xB1, 0x00, 0x00};
+	
+	
+  SystemCoreClockUpdate();                      /* Get Core Clock Frequency   */
+  if (SysTick_Config(SystemCoreClock / 1000)) { /* SysTick 1 msec interrupts  */
+    while (1);                                  /* Capture error              */
+  }
+
+  LED_Init();
+  BTN_Init();   
+  SWT_Init();	
+	ADC1_init();		/*Initialise everything*/
+  LCD_Initpins();	
+	LCD_DriverOn();
+	USART6init(); /*MIDI Initialisation*/
+	
+	Delay(10);
+	LCD_Init();
+	LCD_On(1);
+	PC6_Init();
+	
+  LCD_PutS("Hello");
+	
+	int continueRunning = 1;
+	
+	while(continueRunning){  /* Loop forever */
+		/* Read switch states  */
+	  btns = GPIOE->IDR;
+
+		/*FIND WIND DIRECTION*/
+		int index = findWindDirection();
 		
+		winddirection_midi_values[2] = index;
+		
+		/*Send data as Midi*/
+		USART6send(winddirection_midi_values, 3);
+		
+		/*FIND WIND SPEED*/
+
+		double speed = findSpeed();
+		windspeed_midi_values[2] = speed;
+		/*Send data as Midi*/
+		USART6send(windspeed_midi_values, 3);
+	
+
 		
 		/*check Switches*/
 		switch1=SWT_Check(0);
 		switch2=SWT_Check(1);
 		switch3=SWT_Check(2);
 		switch4=SWT_Check(3);
+		
+		
+			
+		/*if(Val_Get_PC6()!=0){
+			flag = 1;
+			
+		}
+		if(Val_Get_PC6()!=0&&flag==0){
+			speed = betterSpeed()
+		}*/
 		
 		if (switch1!=0){
 			page=1;
@@ -195,11 +303,11 @@ int main (void) {
 		if(page==1)
 		{
 			LCD_Clear();
-			LCD_PutS("Page 1");
+			LCD_GotoXY(0,0);
+			LCD_PutS("Wind Direction");
 			LCD_GotoXY(0,1);
-			
-			LCD_PutS(display_value); /*displays value from adc 1*/ 
-			LCD_GotoXY(9,1);
+			 
+			LCD_GotoXY(10,1);
 			
 			LCD_PutS(compassPoints[0][index]); /*allong with compass position (N, NW, S, SE etc)*/
 			
@@ -209,8 +317,19 @@ int main (void) {
 		if(page==2)
 		{
 			LCD_Clear();
-			LCD_PutS("Page 2");
-			Delay(1000);
+			LCD_GotoXY(0,0);
+			LCD_PutS("WindSpeed (kmph)");
+			
+			LCD_GotoXY(10,1);
+			LCD_PutS(display_speed);
+			
+			
+			sprintf(display_speed, "%f", speed);
+			LCD_PutS(display_speed);
+			
+			
+			Delay(100);
+			
 		}
 		
 		if(page==3)
@@ -226,6 +345,7 @@ int main (void) {
 			LCD_PutS("Page 4");
 			Delay(1000);
 		}
-	}		
+	}	
+}	
 
 

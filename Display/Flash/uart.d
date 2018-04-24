@@ -1,0 +1,11 @@
+.\flash\uart.o: UART.c
+.\flash\uart.o: C:\KEIL_V5\ARM\PACK\Keil\STM32F4xx_DFP\2.11.0\Drivers\CMSIS\Device\ST\STM32F4xx\Include\STM32F4xx.h
+.\flash\uart.o: C:\KEIL_V5\ARM\PACK\Keil\STM32F4xx_DFP\2.11.0\Drivers\CMSIS\Device\ST\STM32F4xx\Include\stm32f407xx.h
+.\flash\uart.o: C:\KEIL_V5\ARM\PACK\ARM\CMSIS\5.0.1\CMSIS\Include\core_cm4.h
+.\flash\uart.o: C:\KEIL_V5\ARM\ARMCC\Bin\..\include\stdint.h
+.\flash\uart.o: C:\KEIL_V5\ARM\PACK\ARM\CMSIS\5.0.1\CMSIS\Include\cmsis_compiler.h
+.\flash\uart.o: C:\KEIL_V5\ARM\PACK\ARM\CMSIS\5.0.1\CMSIS\Include\cmsis_armcc.h
+.\flash\uart.o: C:\KEIL_V5\ARM\PACK\Keil\STM32F4xx_DFP\2.11.0\Drivers\CMSIS\Device\ST\STM32F4xx\Include\system_stm32f4xx.h
+.\flash\uart.o: .\RTE\_STM32F407_Flash\RTE_Components.h
+.\flash\uart.o: C:\KEIL_V5\ARM\ARMCC\Bin\..\include\stdbool.h
+.\flash\uart.o: UART4.h

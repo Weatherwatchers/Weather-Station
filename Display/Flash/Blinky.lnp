@@ -3,6 +3,7 @@
 ".\flash\swt.o"
 ".\flash\lcd.o"
 ".\flash\display.o"
+".\flash\uart.o"
 ".\flash\startup_stm32f407xx.o"
 ".\flash\system_stm32f4xx.o"
 --strict --scatter ".\Flash\Blinky.sct"

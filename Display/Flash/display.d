@@ -12,3 +12,4 @@
 .\flash\display.o: LED.h
 .\flash\display.o: SWT.h
 .\flash\display.o: LCD.h
+.\flash\display.o: UART4.h
