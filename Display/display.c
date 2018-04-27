@@ -96,6 +96,35 @@ void ADC1_init(void) {
 	/* Enable the ADC */
 	ADC1->CR2 |= ADC_CR2_ADON;
 }
+
+
+
+void ADC2_init(void) {
+	/* Enable clocks */
+	RCC->APB2ENR  |= RCC_APB2ENR_ADC1EN;
+	RCC->AHB1ENR  |= RCC_AHB1ENR_GPIOCEN;
+	
+	/* ADC12_IN14 is the channel we shall use. It is connected to 
+	 * PC4 which is connected to the board edge connectors */
+	GPIOC->MODER = 0x3 << (2 * 5);
+	GPIOC->PUPDR = 0;
+	
+	/* Set ADC to discontinuous conversion mode. */
+	ADC2->CR1 = 0x00;
+	ADC2->CR1 |= ADC_CR1_DISCEN;
+	
+	/* Ensure CR2 is set to zero. This means data will be right aligned, 
+	 * DMA is disabled and there are no extrnal triggers/injected channels */
+	ADC2->CR2 = 0x00;
+	
+	/* Set to one conversion at a time, and set that first conversion 
+	 * to come from channel 14 (connected to PC4) */
+	ADC2->SQR1 &= ~ADC_SQR1_L;
+	ADC2->SQR3 = 15 & ADC_SQR3_SQ1;
+	
+	/* Enable the ADC */
+	ADC2->CR2 |= ADC_CR2_ADON;
+}
 	
 /* function to read ADC and retun value */
 unsigned int read_ADC1 (void) {
@@ -108,12 +137,22 @@ unsigned int read_ADC1 (void) {
 	/* Return data value */
 	return (ADC1->DR);
 }
+unsigned int read_ADC2 (void) {
+	/* set SWSTART to 1 to start conversion */
+	ADC2->CR2 |= ADC_CR2_SWSTART;
+	
+	/* Wait until End Of Conversion bit goes high */
+	while (!(ADC2->SR & ADC_SR_EOC));
+	
+	/* Return data value */
+	return (ADC2->DR);
+}
 
-void PC6_Init(void) {
+void PC13_Init(void) {
 	RCC->AHB1ENR |= RCC_AHB1ENR_GPIOCEN;
-	GPIOC->MODER &= ~((3UL << 2*6) );
-	GPIOC->PUPDR &= ~((3UL<<2*6));
-	GPIOC->PUPDR |= ((2UL<<2*6));
+	GPIOC->MODER &= ~((3UL << 2*13) );
+	GPIOC->PUPDR &= ~((3UL<<2*13));
+	GPIOC->PUPDR |= ((2UL<<2*13));
 }
 /*
 void PE3_Init(void) {
@@ -131,14 +170,13 @@ void output_PE3_off(void){
 	GPIOE->BSRR = 1UL << 3 << 16;
 }*/
 
-uint32_t Val_Get_PC6(void) {
-	return (GPIOC->IDR & (1UL<<6));
+uint32_t Val_Get_PC13(void) {
+	return (GPIOC->IDR & (1UL<<13));
 }
 
 
 double findSpeed(void)
 {
-	int carryOn = 1;
 	double count=0;
 	int flag=0;
 
@@ -146,11 +184,11 @@ double findSpeed(void)
 
   curTicks = msTicks;
   while ((msTicks - curTicks) < 1000){
-		if(Val_Get_PC6()!=0 && flag==0){
+		if(Val_Get_PC13()!=0 && flag==0){
 			count=count+1;
 			flag=1;
 		}
-		else if(Val_Get_PC6()==0){
+		else if(Val_Get_PC13()==0){
 			flag=0;
 	}
 	}
@@ -190,8 +228,9 @@ int findWindDirection(){
 		return index;
 }
 
-
-
+double findTemp(){
+	return read_ADC2();
+}
 
 /*----------------------------------------------------------------------------
   MAIN function
@@ -202,7 +241,6 @@ int main (void) {
 	volatile int switch1;
 	volatile int switch2;
 	volatile int switch3;
-	volatile int switch4;
 	int page;
 	char* compassPoints[2][8]={"S",  "SW",  "W",  "NW", "N",  "NE",  "E",  "SE"  };
 	
@@ -211,18 +249,18 @@ int main (void) {
 	int speedcount;
 	double cyclesPerSec;
 	char display_speed[20];
+	char display_temp[20];
 	double speed = 0;
 	int flag = 0;
 	
-	uint32_t pin6value;
-	
+
 	/* Midi CC = 0xnc, 0xcc, 0xvv
 	Where n = is the status (0xB only!)
 	c = midi channel no.
 	cc = controller number
 	vv = controller value */
-	uint8_t winddirection_midi_values[]={0xB1, 0x00, 0x00};
-	uint8_t windspeed_midi_values[]={0xB1, 0x00, 0x00};
+	uint8_t winddirection_midi_values[]={0xB1, 0x01, 0x00};
+	uint8_t windspeed_midi_values[]={0xB2, 0x02, 0x00};
 	
 	
   SystemCoreClockUpdate();                      /* Get Core Clock Frequency   */
@@ -234,6 +272,7 @@ int main (void) {
   BTN_Init();   
   SWT_Init();	
 	ADC1_init();		/*Initialise everything*/
+	//ADC2_init();	
   LCD_Initpins();	
 	LCD_DriverOn();
 	USART6init(); /*MIDI Initialisation*/
@@ -241,7 +280,7 @@ int main (void) {
 	Delay(10);
 	LCD_Init();
 	LCD_On(1);
-	PC6_Init();
+	PC13_Init();
 	
   LCD_PutS("Hello");
 	
@@ -253,37 +292,26 @@ int main (void) {
 
 		/*FIND WIND DIRECTION*/
 		int index = findWindDirection();
-		
 		winddirection_midi_values[2] = index;
 		
 		/*Send data as Midi*/
 		USART6send(winddirection_midi_values, 3);
 		
 		/*FIND WIND SPEED*/
-
 		double speed = findSpeed();
 		windspeed_midi_values[2] = speed;
 		/*Send data as Midi*/
 		USART6send(windspeed_midi_values, 3);
-	
-
 		
+		/*FIND TEMP*/
+		//double temp = findTemp();
+	
 		/*check Switches*/
 		switch1=SWT_Check(0);
 		switch2=SWT_Check(1);
 		switch3=SWT_Check(2);
-		switch4=SWT_Check(3);
 		
-		
-			
-		/*if(Val_Get_PC6()!=0){
-			flag = 1;
-			
-		}
-		if(Val_Get_PC6()!=0&&flag==0){
-			speed = betterSpeed()
-		}*/
-		
+		/*Latch system so you only need to press the desired button once, and it will change "page"*/
 		if (switch1!=0){
 			page=1;
 		}
@@ -295,11 +323,8 @@ int main (void) {
 		if (switch3!=0){
 			page=3;
 		}
-		
-		if (switch4!=0){
-			page=4;
-		}
-		
+	
+		/*PAGE 1*/
 		if(page==1)
 		{
 			LCD_Clear();
@@ -314,6 +339,7 @@ int main (void) {
 			Delay(1000);
 		}
 		
+		/*PAGE 2*/
 		if(page==2)
 		{
 			LCD_Clear();
@@ -323,27 +349,22 @@ int main (void) {
 			LCD_GotoXY(10,1);
 			LCD_PutS(display_speed);
 			
-			
 			sprintf(display_speed, "%f", speed);
 			LCD_PutS(display_speed);
-			
-			
+		
 			Delay(100);
-			
 		}
 		
+		/*PAGE 3*/
 		if(page==3)
 		{
 			LCD_Clear();
 			LCD_PutS("Page 3");
 			Delay(1000);
-		}
-		
-		if(page==4)
-		{
-			LCD_Clear();
-			LCD_PutS("Page 4");
-			Delay(1000);
+			
+			//sprintf(display_temp, "%f", temp);
+			
+			LCD_PutS(display_temp);
 		}
 	}	
 }	

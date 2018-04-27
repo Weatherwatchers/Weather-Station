@@ -22,37 +22,33 @@ Dialog DLL:      TCM.DLL V1.27.0.0
  
 <h2>Project:</h2>
 \\userfs\whc503\w2k\DESCONTEST\Display_K5\Display\Display\display.uvprojx
-Project File Date:  03/14/2018
+Project File Date:  04/24/2018
 
 <h2>Output:</h2>
 *** Using Compiler 'V5.06 update 4 (build 422)', folder: 'C:\KEIL_V5\ARM\ARMCC\Bin'
 Rebuild target 'STM32F407 Flash'
-compiling LCD.c...
 compiling LED.c...
 compiling SWT.c...
+compiling LCD.c...
 assembling startup_stm32f407xx.s...
+compiling system_stm32f4xx.c...
 compiling UART.c...
 UART.c(53): warning:  #1-D: last line of file ends without a newline
   }
 UART.c: 1 warning, 0 errors
-compiling system_stm32f4xx.c...
 compiling display.c...
-display.c(141): warning:  #177-D: variable "carryOn"  was declared but never referenced
-  	int carryOn = 1;
-display.c(238): warning:  #177-D: variable "speedcount"  was declared but never referenced
+display.c(249): warning:  #177-D: variable "speedcount"  was declared but never referenced
   	int speedcount;
-display.c(239): warning:  #177-D: variable "cyclesPerSec"  was declared but never referenced
+display.c(250): warning:  #177-D: variable "cyclesPerSec"  was declared but never referenced
   	double cyclesPerSec;
-display.c(241): warning:  #177-D: variable "speed"  was declared but never referenced
+display.c(253): warning:  #177-D: variable "speed"  was declared but never referenced
   	double speed = 0;
-display.c(242): warning:  #177-D: variable "flag"  was declared but never referenced
+display.c(254): warning:  #177-D: variable "flag"  was declared but never referenced
   	int flag = 0;
-display.c(244): warning:  #177-D: variable "pin6value"  was declared but never referenced
-  	uint32_t pin6value;
-display.c: 6 warnings, 0 errors
+display.c: 4 warnings, 0 errors
 linking...
-Program Size: Code=9048 RO-data=864 RW-data=8 ZI-data=1632  
-".\Flash\Blinky.axf" - 0 Error(s), 7 Warning(s).
+Program Size: Code=9116 RO-data=860 RW-data=8 ZI-data=1632  
+".\Flash\Blinky.axf" - 0 Error(s), 5 Warning(s).
 
 <h2>Software Packages used:</h2>
 
@@ -78,10 +74,10 @@ Package Vendor: Keil
    * Component: ARM::CMSIS:CORE:5.0.1
 
    * Component: Keil::Device:Startup:2.6.0
-      Source file:   MDK\Device\Source\ARM\STM32F4xx_OTP.s
-      Source file:   Drivers\CMSIS\Device\ST\STM32F4xx\Source\Templates\arm\startup_stm32f407xx.s
       Source file:   MDK\Device\Source\ARM\STM32F40xxx_41xxx_OPT.s
       Include file:  Drivers\CMSIS\Device\ST\STM32F4xx\Include\stm32f4xx.h
+      Source file:   MDK\Device\Source\ARM\STM32F4xx_OTP.s
+      Source file:   Drivers\CMSIS\Device\ST\STM32F4xx\Source\Templates\arm\startup_stm32f407xx.s
       Source file:   Drivers\CMSIS\Device\ST\STM32F4xx\Source\Templates\system_stm32f4xx.c
 Build Time Elapsed:  00:00:04
 </pre>
